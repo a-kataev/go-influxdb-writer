@@ -1,0 +1,1 @@
+# go-influxdb-writer
