@@ -3,9 +3,10 @@ package writer
 import (
 	"context"
 	"errors"
-	"go-influxdb-writer/internal/batcher"
-	"go-influxdb-writer/internal/httpclient"
 	"time"
+
+	"github.com/a-kataev/go-influxdb-writer/internal/batcher"
+	"github.com/a-kataev/go-influxdb-writer/internal/httpclient"
 )
 
 type Writer interface {
