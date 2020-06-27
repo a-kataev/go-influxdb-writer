@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	version = "v0.1.0"
+	version = "v0.1.1"
 )
 
 type Client interface {
@@ -96,7 +96,7 @@ func (c *client) SendBatch(ctx context.Context, batch io.Reader) error {
 	}
 
 	req.Header.Add("Authorization", "Token "+c.options.authToken)
-	req.Header.Add("User-Agent", "go-influxdb-writer"+version)
+	req.Header.Add("User-Agent", "go-influxdb-writer "+version)
 
 	resp, err := c.http.Do(req)
 	if err != nil {
