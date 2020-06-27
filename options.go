@@ -8,18 +8,38 @@ import (
 )
 
 type Options struct {
-	writer writerOptions
-	client httpclient.Options
-	batch  batcher.Options
+	writer *writerOptions
+	client *httpclient.Options
+	batch  *batcher.Options
+}
+
+func DefaultOptions() *Options {
+	return &Options{
+		writer: &writerOptions{
+			FlushInterval: 10 * time.Second,
+			FlushTimeout:  9 * time.Second,
+		},
+		client: &httpclient.Options{
+			ServerURL:   "http://localhost:8086",
+			AuthToken:   "admin:password",
+			Bucket:      "test",
+			Precision:   "ns",
+			HTTPTimeout: 8 * time.Second,
+		},
+		batch: &batcher.Options{
+			LinesLimit: 5000,
+			BatchSize:  1024 * 1024 * 3,
+		},
+	}
 }
 
 func (o *Options) SetFlushInterval(interval time.Duration) *Options {
-	o.writer.flushInterval = interval
+	o.writer.FlushInterval = interval
 	return o
 }
 
 func (o *Options) SetFlushTimeout(timeout time.Duration) *Options {
-	o.writer.flushTimeout = timeout
+	o.writer.FlushTimeout = timeout
 	return o
 }
 

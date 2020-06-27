@@ -15,8 +15,8 @@ type Writer interface {
 }
 
 type writerOptions struct {
-	flushInterval time.Duration
-	flushTimeout  time.Duration
+	FlushInterval time.Duration
+	FlushTimeout  time.Duration
 }
 
 type writer struct {
@@ -33,11 +33,11 @@ func New(logger Logger, options *Options) Writer {
 	}
 
 	newWriter := &writer{
-		client:  httpclient.New(&options.client),
-		batch:   batcher.New(&options.batch),
+		client:  httpclient.New(options.client),
+		batch:   batcher.New(options.batch),
 		writeCh: make(chan string),
 		logger:  logger,
-		options: &options.writer,
+		options: options.writer,
 	}
 
 	newWriter.logger.Infof("writer: started")
@@ -48,7 +48,7 @@ func New(logger Logger, options *Options) Writer {
 }
 
 func (w *writer) run() {
-	ticker := time.NewTicker(w.options.flushInterval)
+	ticker := time.NewTicker(w.options.FlushInterval)
 	defer ticker.Stop()
 
 	for {
@@ -66,7 +66,7 @@ func (w *writer) run() {
 				}
 
 				ticker.Stop()
-				ticker = time.NewTicker(w.options.flushInterval)
+				ticker = time.NewTicker(w.options.FlushInterval)
 			} else if err != nil {
 				w.logger.Errorf("batch.write: %s", err)
 			}
@@ -77,7 +77,7 @@ func (w *writer) run() {
 }
 
 func (w *writer) flush() {
-	ctx, cancel := context.WithTimeout(context.Background(), w.options.flushTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), w.options.FlushTimeout)
 	defer cancel()
 
 	if reader := w.batch.Reader(); reader != nil {
