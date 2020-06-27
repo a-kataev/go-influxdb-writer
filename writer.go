@@ -56,10 +56,11 @@ type writer struct {
 	client  httpclient.Client
 	batch   batcher.Batch
 	writeCh chan string
+	logger  Logger
 	options *Options
 }
 
-func New(config *Config) Writer {
+func New(logger Logger, config *Config) Writer {
 	clientOptions := new(httpclient.Options).
 		SetServerURL(config.ServerURL).
 		SetAuthToken(config.AuthToken).
@@ -79,16 +80,23 @@ func New(config *Config) Writer {
 		SetFlushInterval(config.FlushInterval).
 		SetFlushTimeout(config.HTTPTimeout)
 
-	return NewWriter(client, batch, writerOptions)
+	if logger == nil {
+		logger = &defaultLogger{}
+	}
+
+	return NewWriter(client, batch, logger, writerOptions)
 }
 
-func NewWriter(client httpclient.Client, batch batcher.Batch, options *Options) Writer {
+func NewWriter(client httpclient.Client, batch batcher.Batch, logger Logger, options *Options) Writer {
 	w := &writer{
 		client:  client,
 		batch:   batch,
 		writeCh: make(chan string),
+		logger:  logger,
 		options: options,
 	}
+
+	w.logger.Infof("writer: started")
 
 	go w.handler()
 
@@ -109,7 +117,9 @@ func (w *writer) handler() {
 			if err := w.batch.Write(line); errors.Is(err, batcher.ErrLimitExceeded) {
 				w.flush()
 
-				_ = w.batch.Write(line)
+				if err := w.batch.Write(line); err != nil {
+					w.logger.Errorf("batch.write: %s", err)
+				}
 
 				ticker.Stop()
 				ticker = time.NewTicker(w.options.flushInterval)
@@ -125,7 +135,9 @@ func (w *writer) flush() {
 	defer cancel()
 
 	if reader := w.batch.Reader(); reader != nil {
-		_ = w.client.SendBatch(ctx, reader)
+		if err := w.client.SendBatch(ctx, reader); err != nil {
+			w.logger.Errorf("client.send: %s", err)
+		}
 	}
 
 	w.batch.Reset()
@@ -138,4 +150,5 @@ func (w *writer) WriteLine(line string) {
 func (w *writer) Close() {
 	close(w.writeCh)
 	w.flush()
+	w.logger.Infof("writer: stopped")
 }
