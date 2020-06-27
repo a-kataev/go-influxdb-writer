@@ -10,10 +10,8 @@ import (
 	"net/http"
 	"net/url"
 	"time"
-)
 
-var (
-	version = "v0.1.2"
+	"github.com/a-kataev/go-influxdb-writer/internal/version"
 )
 
 type Client interface {
@@ -96,7 +94,7 @@ func (c *client) SendBatch(ctx context.Context, batch io.Reader) error {
 	}
 
 	req.Header.Add("Authorization", "Token "+c.options.authToken)
-	req.Header.Add("User-Agent", "go-influxdb-writer "+version)
+	req.Header.Add("User-Agent", "go-influxdb-writer "+version.Version)
 
 	resp, err := c.http.Do(req)
 	if err != nil {
