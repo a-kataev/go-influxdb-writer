@@ -18,9 +18,9 @@ type Config struct {
 	AuthToken     string
 	Bucket        string
 	Precision     string
-	Timeout       time.Duration
-	MaxCountLines uint32
-	MaxSizeBuffer uint32
+	HTTPTimeout   time.Duration
+	LinesLimit    uint32
+	BatchSize     uint32
 	FlushInterval time.Duration
 }
 
@@ -30,9 +30,9 @@ func DefaultConfig() *Config {
 		AuthToken:     "admin:password",
 		Bucket:        "test",
 		Precision:     "ns",
-		Timeout:       10 * time.Second,
-		MaxCountLines: 5000,
-		MaxSizeBuffer: 1024 * 1024 * 3,
+		HTTPTimeout:   10 * time.Second,
+		LinesLimit:    5000,
+		BatchSize:     1024 * 1024 * 3,
 		FlushInterval: 10 * time.Second,
 	}
 }
@@ -65,19 +65,19 @@ func New(config *Config) Writer {
 		SetAuthToken(config.AuthToken).
 		SetBucket(config.Bucket).
 		SetPrecision(config.Precision).
-		SetTimeout(config.Timeout)
+		SetHTTPTimeout(config.HTTPTimeout)
 
 	client := httpclient.New(clientOptions)
 
 	batchOptions := new(batcher.Options).
-		SetMaxCountLines(config.MaxCountLines).
-		SetMaxBufferSize(config.MaxSizeBuffer)
+		SetLinesLimit(config.LinesLimit).
+		SetBatchSize(config.BatchSize)
 
 	batch := batcher.New(batchOptions)
 
 	writerOptions := new(Options).
 		SetFlushInterval(config.FlushInterval).
-		SetFlushTimeout(config.Timeout)
+		SetFlushTimeout(config.HTTPTimeout)
 
 	return NewWriter(client, batch, writerOptions)
 }
@@ -90,12 +90,12 @@ func NewWriter(client httpclient.Client, batch batcher.Batch, options *Options) 
 		options: options,
 	}
 
-	go w.flushHandler()
+	go w.handler()
 
 	return w
 }
 
-func (w *writer) flushHandler() {
+func (w *writer) handler() {
 	ticker := time.NewTicker(w.options.flushInterval)
 	defer ticker.Stop()
 
@@ -106,7 +106,7 @@ func (w *writer) flushHandler() {
 				return
 			}
 
-			if err := w.batch.Write(line); errors.Is(err, batcher.ErrLimit) {
+			if err := w.batch.Write(line); errors.Is(err, batcher.ErrLimitExceeded) {
 				w.flush()
 
 				_ = w.batch.Write(line)

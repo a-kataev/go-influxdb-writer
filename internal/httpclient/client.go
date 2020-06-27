@@ -12,16 +12,20 @@ import (
 	"time"
 )
 
+var (
+	version = "v0.1.0"
+)
+
 type Client interface {
 	SendBatch(ctx context.Context, batch io.Reader) error
 }
 
 type Options struct {
-	serverURL string
-	authToken string
-	bucket    string
-	precision string
-	timeout   time.Duration
+	serverURL   string
+	authToken   string
+	bucket      string
+	precision   string
+	httpTimeout time.Duration
 }
 
 func (o *Options) SetServerURL(url string) *Options {
@@ -44,8 +48,8 @@ func (o *Options) SetPrecision(precision string) *Options {
 	return o
 }
 
-func (o *Options) SetTimeout(timeout time.Duration) *Options {
-	o.timeout = timeout
+func (o *Options) SetHTTPTimeout(timeout time.Duration) *Options {
+	o.httpTimeout = timeout
 	return o
 }
 
@@ -60,7 +64,7 @@ func New(options *Options) Client {
 		options: options,
 	}
 
-	c.http.Timeout = c.options.timeout
+	c.http.Timeout = c.options.httpTimeout
 
 	return c
 }
@@ -92,7 +96,7 @@ func (c *client) SendBatch(ctx context.Context, batch io.Reader) error {
 	}
 
 	req.Header.Add("Authorization", "Token "+c.options.authToken)
-	req.Header.Add("User-Agent", "go-influxdb-writer")
+	req.Header.Add("User-Agent", "go-influxdb-writer"+version)
 
 	resp, err := c.http.Do(req)
 	if err != nil {
