@@ -15,7 +15,7 @@ import (
 )
 
 type Client interface {
-	SendBatch(ctx context.Context, batch io.Reader) error
+	Send(ctx context.Context, data io.Reader) error
 }
 
 type Options struct {
@@ -71,7 +71,7 @@ type responseError struct {
 	Error string `json:"error"`
 }
 
-func (c *client) SendBatch(ctx context.Context, batch io.Reader) error {
+func (c *client) Send(ctx context.Context, data io.Reader) error {
 	reqQuery := url.Values{}
 
 	if len(c.options.bucket) > 0 {
@@ -88,7 +88,7 @@ func (c *client) SendBatch(ctx context.Context, batch io.Reader) error {
 		reqURL += "?" + reqQuery.Encode()
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", reqURL, batch)
+	req, err := http.NewRequestWithContext(ctx, "POST", reqURL, data)
 	if err != nil {
 		return err
 	}

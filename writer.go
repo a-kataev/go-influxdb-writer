@@ -124,6 +124,8 @@ func (w *writer) handler() {
 
 				ticker.Stop()
 				ticker = time.NewTicker(w.options.flushInterval)
+			} else if err != nil {
+				w.logger.Errorf("batch.write: %s", err)
 			}
 		case <-ticker.C:
 			w.flush()
@@ -136,7 +138,7 @@ func (w *writer) flush() {
 	defer cancel()
 
 	if reader := w.batch.Reader(); reader != nil {
-		if err := w.client.SendBatch(ctx, reader); err != nil {
+		if err := w.client.Send(ctx, reader); err != nil {
 			w.logger.Errorf("client.send: %s", err)
 		}
 	}
