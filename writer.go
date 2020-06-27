@@ -14,43 +14,9 @@ type Writer interface {
 	Close()
 }
 
-type Config struct {
-	ServerURL     string
-	AuthToken     string
-	Bucket        string
-	Precision     string
-	HTTPTimeout   time.Duration
-	LinesLimit    uint32
-	BatchSize     uint32
-	FlushInterval time.Duration
-}
-
-func DefaultConfig() *Config {
-	return &Config{
-		ServerURL:     "http://localhost:8086",
-		AuthToken:     "admin:password",
-		Bucket:        "test",
-		Precision:     "ns",
-		HTTPTimeout:   10 * time.Second,
-		LinesLimit:    5000,
-		BatchSize:     1024 * 1024 * 3,
-		FlushInterval: 10 * time.Second,
-	}
-}
-
-type Options struct {
+type writerOptions struct {
 	flushInterval time.Duration
 	flushTimeout  time.Duration
-}
-
-func (o *Options) SetFlushInterval(interval time.Duration) *Options {
-	o.flushInterval = interval
-	return o
-}
-
-func (o *Options) SetFlushTimeout(timeout time.Duration) *Options {
-	o.flushTimeout = timeout
-	return o
 }
 
 type writer struct {
@@ -58,53 +24,30 @@ type writer struct {
 	batch   batcher.Batch
 	writeCh chan string
 	logger  Logger
-	options *Options
+	options *writerOptions
 }
 
-func New(logger Logger, config *Config) Writer {
-	clientOptions := new(httpclient.Options).
-		SetServerURL(config.ServerURL).
-		SetAuthToken(config.AuthToken).
-		SetBucket(config.Bucket).
-		SetPrecision(config.Precision).
-		SetHTTPTimeout(config.HTTPTimeout)
-
-	client := httpclient.New(clientOptions)
-
-	batchOptions := new(batcher.Options).
-		SetLinesLimit(config.LinesLimit).
-		SetBatchSize(config.BatchSize)
-
-	batch := batcher.New(batchOptions)
-
-	writerOptions := new(Options).
-		SetFlushInterval(config.FlushInterval).
-		SetFlushTimeout(config.HTTPTimeout)
-
+func New(logger Logger, options *Options) Writer {
 	if logger == nil {
 		logger = &defaultLogger{}
 	}
 
-	return NewWriter(client, batch, logger, writerOptions)
-}
-
-func NewWriter(client httpclient.Client, batch batcher.Batch, logger Logger, options *Options) Writer {
-	w := &writer{
-		client:  client,
-		batch:   batch,
+	newWriter := &writer{
+		client:  httpclient.New(&options.client),
+		batch:   batcher.New(&options.batch),
 		writeCh: make(chan string),
 		logger:  logger,
-		options: options,
+		options: &options.writer,
 	}
 
-	w.logger.Infof("writer: started")
+	newWriter.logger.Infof("writer: started")
 
-	go w.handler()
+	go newWriter.run()
 
-	return w
+	return newWriter
 }
 
-func (w *writer) handler() {
+func (w *writer) run() {
 	ticker := time.NewTicker(w.options.flushInterval)
 	defer ticker.Stop()
 
@@ -152,6 +95,8 @@ func (w *writer) WriteLine(line string) {
 
 func (w *writer) Close() {
 	close(w.writeCh)
+
 	w.flush()
+
 	w.logger.Infof("writer: stopped")
 }

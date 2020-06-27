@@ -19,36 +19,11 @@ type Client interface {
 }
 
 type Options struct {
-	serverURL   string
-	authToken   string
-	bucket      string
-	precision   string
-	httpTimeout time.Duration
-}
-
-func (o *Options) SetServerURL(url string) *Options {
-	o.serverURL = url
-	return o
-}
-
-func (o *Options) SetAuthToken(token string) *Options {
-	o.authToken = token
-	return o
-}
-
-func (o *Options) SetBucket(bucket string) *Options {
-	o.bucket = bucket
-	return o
-}
-
-func (o *Options) SetPrecision(precision string) *Options {
-	o.precision = precision
-	return o
-}
-
-func (o *Options) SetHTTPTimeout(timeout time.Duration) *Options {
-	o.httpTimeout = timeout
-	return o
+	ServerURL   string
+	AuthToken   string
+	Bucket      string
+	Precision   string
+	HTTPTimeout time.Duration
 }
 
 type client struct {
@@ -62,7 +37,7 @@ func New(options *Options) Client {
 		options: options,
 	}
 
-	c.http.Timeout = c.options.httpTimeout
+	c.http.Timeout = c.options.HTTPTimeout
 
 	return c
 }
@@ -74,15 +49,15 @@ type responseError struct {
 func (c *client) Send(ctx context.Context, data io.Reader) error {
 	reqQuery := url.Values{}
 
-	if len(c.options.bucket) > 0 {
-		reqQuery.Add("bucket", c.options.bucket)
+	if len(c.options.Bucket) > 0 {
+		reqQuery.Add("bucket", c.options.Bucket)
 	}
 
-	if len(c.options.precision) > 0 {
-		reqQuery.Add("precision", c.options.precision)
+	if len(c.options.Precision) > 0 {
+		reqQuery.Add("precision", c.options.Precision)
 	}
 
-	reqURL := c.options.serverURL + "/api/v2/write"
+	reqURL := c.options.ServerURL + "/api/v2/write"
 
 	if len(reqQuery.Encode()) > 0 {
 		reqURL += "?" + reqQuery.Encode()
@@ -93,7 +68,7 @@ func (c *client) Send(ctx context.Context, data io.Reader) error {
 		return err
 	}
 
-	req.Header.Add("Authorization", "Token "+c.options.authToken)
+	req.Header.Add("Authorization", "Token "+c.options.AuthToken)
 	req.Header.Add("User-Agent", "go-influxdb-writer "+version.Version)
 
 	resp, err := c.http.Do(req)

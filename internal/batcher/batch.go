@@ -14,18 +14,8 @@ type Batch interface {
 }
 
 type Options struct {
-	linesLimit uint32
-	batchSize  uint32
-}
-
-func (o *Options) SetLinesLimit(count uint32) *Options {
-	o.linesLimit = count
-	return o
-}
-
-func (o *Options) SetBatchSize(size uint32) *Options {
-	o.batchSize = size
-	return o
+	LinesLimit uint32
+	BatchSize  uint32
 }
 
 type batch struct {
@@ -41,7 +31,7 @@ func New(options *Options) Batch {
 		options: options,
 	}
 
-	b.buffer.Grow(int(b.options.batchSize))
+	b.buffer.Grow(int(b.options.BatchSize))
 
 	return b
 }
@@ -52,11 +42,11 @@ func (b *batch) Write(line string) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
-	if uint32(len(line)+1+b.buffer.Len()) >= b.options.batchSize {
+	if uint32(len(line)+1+b.buffer.Len()) >= b.options.BatchSize {
 		return ErrLimitExceeded
 	}
 
-	if b.lineCounter+1 >= b.options.linesLimit {
+	if b.lineCounter+1 >= b.options.LinesLimit {
 		return ErrLimitExceeded
 	}
 
