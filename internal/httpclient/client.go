@@ -28,6 +28,7 @@ type Options struct {
 
 type client struct {
 	http    *http.Client
+	sendURL string
 	options *Options
 }
 
@@ -39,7 +40,33 @@ func New(options *Options) Client {
 
 	c.http.Timeout = c.options.HTTPTimeout
 
+	c.sendURL = c.makeSendURL()
+
 	return c
+}
+
+func (c *client) makeSendURL() string {
+	params := url.Values{}
+
+	changed := false
+
+	if len(c.options.Bucket) > 0 {
+		params.Add("bucket", c.options.Bucket)
+		changed = true
+	}
+
+	if len(c.options.Precision) > 0 {
+		params.Add("precision", c.options.Precision)
+		changed = true
+	}
+
+	url := c.options.ServerURL + "/api/v2/write"
+
+	if changed {
+		url += "?" + params.Encode()
+	}
+
+	return url
 }
 
 type responseError struct {
@@ -47,23 +74,7 @@ type responseError struct {
 }
 
 func (c *client) Send(ctx context.Context, data io.Reader) error {
-	reqQuery := url.Values{}
-
-	if len(c.options.Bucket) > 0 {
-		reqQuery.Add("bucket", c.options.Bucket)
-	}
-
-	if len(c.options.Precision) > 0 {
-		reqQuery.Add("precision", c.options.Precision)
-	}
-
-	reqURL := c.options.ServerURL + "/api/v2/write"
-
-	if len(reqQuery.Encode()) > 0 {
-		reqURL += "?" + reqQuery.Encode()
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", reqURL, data)
+	req, err := http.NewRequestWithContext(ctx, "POST", c.sendURL, data)
 	if err != nil {
 		return err
 	}
@@ -80,14 +91,18 @@ func (c *client) Send(ctx context.Context, data io.Reader) error {
 	if err != nil {
 		return err
 	}
+
 	_, _ = ioutil.ReadAll(resp.Body)
+
 	resp.Body.Close()
 
 	if resp.StatusCode != 204 {
 		respErr := &responseError{}
+
 		if err := json.Unmarshal(body, respErr); err != nil {
 			return fmt.Errorf("code: %d, body: '%s'", resp.StatusCode, string(body))
 		}
+
 		return errors.New(respErr.Error)
 	}
 
