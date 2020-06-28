@@ -16,8 +16,8 @@ type Options struct {
 func DefaultOptions() *Options {
 	return &Options{
 		writer: &writerOptions{
-			FlushInterval: 10 * time.Second,
-			FlushTimeout:  9 * time.Second,
+			SendInterval: 10 * time.Second,
+			SendTimeout:  9 * time.Second,
 		},
 		client: &httpclient.Options{
 			ServerURL:   "http://localhost:8086",
@@ -33,13 +33,13 @@ func DefaultOptions() *Options {
 	}
 }
 
-func (o *Options) SetFlushInterval(interval time.Duration) *Options {
-	o.writer.FlushInterval = interval
+func (o *Options) SetSendInterval(interval time.Duration) *Options {
+	o.writer.SendInterval = interval
 	return o
 }
 
-func (o *Options) SetFlushTimeout(timeout time.Duration) *Options {
-	o.writer.FlushTimeout = timeout
+func (o *Options) SetSendTimeout(timeout time.Duration) *Options {
+	o.writer.SendTimeout = timeout
 	return o
 }
 

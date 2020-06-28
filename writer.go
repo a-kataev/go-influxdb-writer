@@ -15,8 +15,8 @@ type Writer interface {
 }
 
 type writerOptions struct {
-	FlushInterval time.Duration
-	FlushTimeout  time.Duration
+	SendInterval time.Duration
+	SendTimeout  time.Duration
 }
 
 type writer struct {
@@ -32,7 +32,7 @@ func New(logger Logger, options *Options) Writer {
 		logger = &defaultLogger{}
 	}
 
-	newWriter := &writer{
+	w := &writer{
 		client:  httpclient.New(options.client),
 		batch:   batcher.New(options.batch),
 		writeCh: make(chan string),
@@ -40,15 +40,15 @@ func New(logger Logger, options *Options) Writer {
 		options: options.writer,
 	}
 
-	newWriter.logger.Infof("writer: started")
+	w.logger.Infof("writer: started")
 
-	go newWriter.run()
+	go w.run()
 
-	return newWriter
+	return w
 }
 
 func (w *writer) run() {
-	ticker := time.NewTicker(w.options.FlushInterval)
+	ticker := time.NewTicker(w.options.SendInterval)
 	defer ticker.Stop()
 
 	for {
@@ -59,25 +59,25 @@ func (w *writer) run() {
 			}
 
 			if err := w.batch.Write(line); errors.Is(err, batcher.ErrLimitExceeded) {
-				w.flush()
+				w.send()
 
 				if err := w.batch.Write(line); err != nil {
 					w.logger.Errorf("batch.write: %s", err)
 				}
 
 				ticker.Stop()
-				ticker = time.NewTicker(w.options.FlushInterval)
+				ticker = time.NewTicker(w.options.SendInterval)
 			} else if err != nil {
 				w.logger.Errorf("batch.write: %s", err)
 			}
 		case <-ticker.C:
-			w.flush()
+			w.send()
 		}
 	}
 }
 
-func (w *writer) flush() {
-	ctx, cancel := context.WithTimeout(context.Background(), w.options.FlushTimeout)
+func (w *writer) send() {
+	ctx, cancel := context.WithTimeout(context.Background(), w.options.SendTimeout)
 	defer cancel()
 
 	if reader := w.batch.Reader(); reader != nil {
@@ -96,7 +96,7 @@ func (w *writer) WriteLine(line string) {
 func (w *writer) Close() {
 	close(w.writeCh)
 
-	w.flush()
+	w.send()
 
 	w.logger.Infof("writer: stopped")
 }
