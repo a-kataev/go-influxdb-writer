@@ -9,7 +9,7 @@ import (
 
 type Batch interface {
 	Write(line string) error
-	Reader() io.Reader
+	Reader() (io.Reader, uint32, uint32)
 	Reset()
 }
 
@@ -58,18 +58,18 @@ func (b *batch) Write(line string) error {
 	return err
 }
 
-func (b *batch) Reader() io.Reader {
+func (b *batch) Reader() (io.Reader, uint32, uint32) {
 	b.lock.RLock()
 	defer b.lock.RUnlock()
 
 	if b.buffer.Len() == 0 {
-		return nil
+		return nil, 0, 0
 	}
 
 	copyBuffer := make([]byte, b.buffer.Len())
 	copy(copyBuffer, b.buffer.Bytes())
 
-	return bytes.NewReader(copyBuffer)
+	return bytes.NewReader(copyBuffer), uint32(b.buffer.Len()), b.lineCounter
 }
 
 func (b *batch) Reset() {

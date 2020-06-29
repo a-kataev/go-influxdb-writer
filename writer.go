@@ -40,7 +40,7 @@ func New(logger Logger, options *Options) Writer {
 		options: options.writer,
 	}
 
-	w.logger.Infof("writer: started")
+	w.logger.Infof("started")
 
 	go w.run()
 
@@ -80,7 +80,9 @@ func (w *writer) send() {
 	ctx, cancel := context.WithTimeout(context.Background(), w.options.SendTimeout)
 	defer cancel()
 
-	if reader := w.batch.Reader(); reader != nil {
+	if reader, size, count := w.batch.Reader(); reader != nil {
+		w.logger.Infof("send batch (size: %d, count: %d)", size, count)
+
 		if err := w.client.Send(ctx, reader); err != nil {
 			w.logger.Errorf("client.send: %s", err)
 		}
@@ -98,5 +100,5 @@ func (w *writer) Close() {
 
 	w.send()
 
-	w.logger.Infof("writer: stopped")
+	w.logger.Infof("stopped")
 }
