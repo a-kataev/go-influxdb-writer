@@ -119,9 +119,9 @@ func (c *client) Send(ctx context.Context, data io.Reader) error {
 		respErr := &responseError{}
 
 		if err := json.Unmarshal(body, respErr); err != nil {
-			sendErr.HTTPError = string(body)
+			sendErr.HTTPError = strings.ReplaceAll(string(body), "\n", " ")
 		} else {
-			sendErr.ResponseError = strings.ReplaceAll(respErr.Error, "\n", " ")
+			sendErr.ResponseError = respErr.Error
 		}
 
 		return sendErr
