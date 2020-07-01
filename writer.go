@@ -92,7 +92,7 @@ func (w *writer) send() {
 				w.logger.Errorf("client.send: %s", err)
 			}
 		} else {
-			w.logger.Infof("send batch: size: %d, cound: %d", size, count)
+			w.logger.Infof("send batch: size: %d, count: %d", size, count)
 		}
 	}
 
