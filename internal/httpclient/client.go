@@ -3,12 +3,11 @@ package httpclient
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"github.com/a-kataev/go-influxdb-writer/internal/version"
@@ -69,6 +68,20 @@ func (c *client) makeSendURL() string {
 	return url
 }
 
+type SendError struct {
+	StatusCode    int
+	ResponseError string
+	HTTPError     string
+	RequestID     string
+}
+
+func (e *SendError) Error() string {
+	if len(e.ResponseError) > 0 {
+		return e.ResponseError
+	}
+	return e.HTTPError
+}
+
 type responseError struct {
 	Error string `json:"error"`
 }
@@ -97,13 +110,21 @@ func (c *client) Send(ctx context.Context, data io.Reader) error {
 	resp.Body.Close()
 
 	if resp.StatusCode != 204 {
+
+		sendErr := &SendError{
+			StatusCode: resp.StatusCode,
+			RequestID:  resp.Header.Get("X-Request-Id"),
+		}
+
 		respErr := &responseError{}
 
 		if err := json.Unmarshal(body, respErr); err != nil {
-			return fmt.Errorf("code: %d, body: '%s'", resp.StatusCode, string(body))
+			sendErr.ResponseError = strings.ReplaceAll(string(body), "\n", " ")
+		} else {
+			sendErr.HTTPError = string(body)
 		}
 
-		return errors.New(respErr.Error)
+		return sendErr
 	}
 
 	return nil
