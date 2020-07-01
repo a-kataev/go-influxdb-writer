@@ -81,21 +81,18 @@ func (w *writer) send() {
 	defer cancel()
 
 	if reader, size, count := w.batch.Reader(); reader != nil {
-		err := w.client.Send(ctx, reader)
-
-		if sendErr, ok := err.(*httpclient.SendError); ok {
-			if len(sendErr.RequestID) > 0 {
-				w.logger.Errorf("client.send: request_id: %s, status_code: %d, error: '%s'", sendErr.RequestID, sendErr.StatusCode, err)
+		if err := w.client.Send(ctx, reader); err != nil {
+			if sendErr, ok := err.(*httpclient.SendError); ok {
+				if len(sendErr.RequestID) > 0 {
+					w.logger.Errorf("client.send: request_id: %s, status_code: %d, error: '%s'", sendErr.RequestID, sendErr.StatusCode, err)
+				} else {
+					w.logger.Errorf("client.send: status_code: %d, error: '%s'", sendErr.StatusCode, err)
+				}
 			} else {
-				w.logger.Errorf("client.send: status_code: %d, error: '%s'", sendErr.StatusCode, err)
+				w.logger.Errorf("client.send: %s", err)
 			}
 		} else {
-			w.logger.Errorf("client.send: %s", err)
-		}
-
-		if err == nil {
 			w.logger.Infof("send batch: size: %d, cound: %d", size, count)
-
 		}
 	}
 
