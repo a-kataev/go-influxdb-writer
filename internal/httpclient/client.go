@@ -119,7 +119,7 @@ func (c *client) Send(ctx context.Context, data io.Reader) error {
 		respErr := &responseError{}
 
 		if err := json.Unmarshal(body, respErr); err != nil {
-			sendErr.ResponseError = strings.ReplaceAll(string(body), "\n", " ")
+			sendErr.ResponseError = strings.ReplaceAll(respErr.Error, "\n", " ")
 		} else {
 			sendErr.HTTPError = string(body)
 		}
