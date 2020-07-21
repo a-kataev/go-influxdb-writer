@@ -42,7 +42,7 @@ func (b *batch) Write(line string) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
-	if uint32(len(line)+1+b.buffer.Len()) >= b.options.BatchSize {
+	if uint32(b.buffer.Len()+len(line)+1) >= b.options.BatchSize {
 		return ErrLimitExceeded
 	}
 
@@ -50,12 +50,11 @@ func (b *batch) Write(line string) error {
 		return ErrLimitExceeded
 	}
 
-	_, err := b.buffer.WriteString(line + "\n")
-	if err == nil {
-		b.lineCounter++
-	}
+	_, _ = b.buffer.WriteString(line + "\n")
 
-	return err
+	b.lineCounter++
+
+	return nil
 }
 
 func (b *batch) Reader() (io.Reader, uint32, uint32) {
