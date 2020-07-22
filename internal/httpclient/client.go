@@ -13,6 +13,10 @@ import (
 	"github.com/a-kataev/go-influxdb-writer/internal/version"
 )
 
+type httpClient interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
 type Client interface {
 	Send(ctx context.Context, data io.Reader) error
 }
@@ -26,18 +30,19 @@ type Options struct {
 }
 
 type client struct {
-	http    *http.Client
+	http    httpClient
 	sendURL string
 	options *Options
 }
 
 func New(options *Options) Client {
 	c := &client{
-		http:    &http.Client{},
 		options: options,
 	}
 
-	c.http.Timeout = c.options.HTTPTimeout
+	c.http = &http.Client{
+		Timeout: c.options.HTTPTimeout,
+	}
 
 	c.sendURL = c.makeSendURL()
 
@@ -110,7 +115,6 @@ func (c *client) Send(ctx context.Context, data io.Reader) error {
 	resp.Body.Close()
 
 	if resp.StatusCode != 204 {
-
 		sendErr := &SendError{
 			StatusCode: resp.StatusCode,
 			RequestID:  resp.Header.Get("X-Request-Id"),
