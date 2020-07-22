@@ -1,3 +1,5 @@
+//go:generate mockery -name httpClient -structname mockHTTPClient -inpkg -filename client_mock_test.go
+
 package httpclient
 
 import (
