@@ -3,14 +3,14 @@ package writer
 import (
 	"time"
 
-	"github.com/a-kataev/go-influxdb-writer/internal/batcher"
-	"github.com/a-kataev/go-influxdb-writer/internal/httpclient"
+	"github.com/a-kataev/go-influxdb-writer/internal/batch"
+	"github.com/a-kataev/go-influxdb-writer/internal/client"
 )
 
 type Options struct {
 	writer *writerOptions
-	client *httpclient.Options
-	batch  *batcher.Options
+	client *client.Options
+	batch  *batch.Options
 }
 
 func DefaultOptions() *Options {
@@ -19,16 +19,16 @@ func DefaultOptions() *Options {
 			SendInterval: 10 * time.Second,
 			SendTimeout:  9 * time.Second,
 		},
-		client: &httpclient.Options{
+		client: &client.Options{
 			ServerURL:   "http://localhost:8086",
 			AuthToken:   "admin:password",
 			Bucket:      "test",
 			Precision:   "ns",
 			HTTPTimeout: 8 * time.Second,
 		},
-		batch: &batcher.Options{
-			LinesLimit: 5000,
-			BatchSize:  1024 * 1024 * 3,
+		batch: &batch.Options{
+			BufferSize:   1024 * 1024 * 3,
+			EntriesLimit: 5000,
 		},
 	}
 }
@@ -68,12 +68,12 @@ func (o *Options) SetHTTPTimeout(timeout time.Duration) *Options {
 	return o
 }
 
-func (o *Options) SetLinesLimit(count uint32) *Options {
-	o.batch.LinesLimit = count
+func (o *Options) SetBatchSize(size uint64) *Options {
+	o.batch.BufferSize = size
 	return o
 }
 
-func (o *Options) SetBatchSize(size uint32) *Options {
-	o.batch.BatchSize = size
+func (o *Options) SetEntriesLimit(limit uint64) *Options {
+	o.batch.EntriesLimit = limit
 	return o
 }
