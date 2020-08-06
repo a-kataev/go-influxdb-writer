@@ -9,7 +9,7 @@ import (
 )
 
 type Writer interface {
-	WriterLine(line string)
+	WriteLine(line string)
 	Write(b []byte)
 	Close()
 }
