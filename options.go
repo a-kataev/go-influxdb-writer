@@ -8,6 +8,7 @@ import (
 )
 
 type Options struct {
+	logger Logger
 	writer *writerOptions
 	client *client.Options
 	batch  *batch.Options
@@ -15,6 +16,7 @@ type Options struct {
 
 func DefaultOptions() *Options {
 	return &Options{
+		logger: &defaultLogger{},
 		writer: &writerOptions{
 			SendInterval: 10 * time.Second,
 			SendTimeout:  9 * time.Second,
@@ -31,6 +33,11 @@ func DefaultOptions() *Options {
 			EntriesLimit: 5000,
 		},
 	}
+}
+
+func (o *Options) SetLogger(logger Logger) *Options {
+	o.logger = logger
+	return o
 }
 
 func (o *Options) SetSendInterval(interval time.Duration) *Options {
