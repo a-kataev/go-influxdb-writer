@@ -14,8 +14,11 @@ import (
 )
 
 func Test_New_Close(t *testing.T) {
-	testWriter := New(nil, nil)
-	testWriter.Close()
+	testWriter1 := New(nil, nil)
+	testWriter1.Close()
+
+	testWriter2 := NewWriter("url", "token", "bucket")
+	testWriter2.Close()
 
 	logger := &mockLogger{
 		InfoLines:  make([]string, 0),
@@ -23,6 +26,7 @@ func Test_New_Close(t *testing.T) {
 	}
 	defaultOptions := DefaultOptions()
 	options := defaultOptions.
+		SetLogger(logger).
 		SetSendInterval(defaultOptions.writer.SendInterval).
 		SetSendTimeout(defaultOptions.writer.SendTimeout).
 		SetServerURL(defaultOptions.client.ServerURL).
@@ -32,10 +36,10 @@ func Test_New_Close(t *testing.T) {
 		SetHTTPTimeout(defaultOptions.client.HTTPTimeout).
 		SetBatchSize(defaultOptions.batch.BufferSize).
 		SetEntriesLimit(defaultOptions.batch.EntriesLimit)
-	testWriter = New(logger, options)
-	testWriter.Close()
+	testWriter3 := New(logger, options)
+	testWriter3.Close()
 
-	assert.IsType(t, &writer{}, testWriter)
+	assert.IsType(t, &writer{}, testWriter3)
 	assert.Equal(t, []string{"started", "stopped"}, logger.InfoLines)
 	assert.Equal(t, []string{}, logger.ErrorLines)
 }
