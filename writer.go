@@ -8,9 +8,13 @@ import (
 	"github.com/a-kataev/go-influxdb-writer/internal/client"
 )
 
+// Writer
 type Writer interface {
+	// WriteLine
 	WriteLine(line string)
+	// Write
 	Write(b []byte)
+	// Close
 	Close()
 }
 
@@ -27,6 +31,7 @@ type writer struct {
 	options *writerOptions
 }
 
+// New create Writer with logger and options. Logger have priority of logger into options.
 func New(logger Logger, options *Options) Writer {
 	if options == nil {
 		options = DefaultOptions()
@@ -39,11 +44,13 @@ func New(logger Logger, options *Options) Writer {
 	return NewWriterWithOptions(options)
 }
 
+// NewWriter create Writer with serverURL, authToken and bucket.
 func NewWriter(serverURL, authToken, bucket string) Writer {
 	return NewWriterWithOptions(DefaultOptions().
 		SetServerURL(serverURL).SetAuthToken(authToken).SetBucket(bucket))
 }
 
+// NewWriterWithOptions create Writer with options. Used in New and NewWriter.
 func NewWriterWithOptions(options *Options) Writer {
 	if options == nil {
 		options = DefaultOptions()
@@ -126,14 +133,17 @@ func (w *writer) send() {
 		resp.RequestID, resp.StatusCode, resp.Response)
 }
 
+// WriteLine
 func (w *writer) WriteLine(line string) {
 	w.Write([]byte(line))
 }
 
+// WriteLine
 func (w *writer) Write(b []byte) {
 	w.write <- b
 }
 
+// Close
 func (w *writer) Close() {
 	close(w.write)
 
