@@ -28,10 +28,23 @@ type writer struct {
 }
 
 func New(logger Logger, options *Options) Writer {
-	if logger == nil {
-		logger = &defaultLogger{}
+	if options == nil {
+		options = DefaultOptions()
 	}
 
+	if logger != nil {
+		options.SetLogger(logger)
+	}
+
+	return NewWriterWithOptions(options)
+}
+
+func NewWriter(serverURL, authToken, bucket string) Writer {
+	return NewWriterWithOptions(DefaultOptions().
+		SetServerURL(serverURL).SetAuthToken(authToken).SetBucket(bucket))
+}
+
+func NewWriterWithOptions(options *Options) Writer {
 	if options == nil {
 		options = DefaultOptions()
 	}
@@ -40,7 +53,7 @@ func New(logger Logger, options *Options) Writer {
 		client:  client.New(options.client),
 		batch:   batch.New(options.batch),
 		write:   make(chan []byte),
-		logger:  logger,
+		logger:  options.logger,
 		options: options.writer,
 	}
 
