@@ -14,7 +14,7 @@ import (
 )
 
 func Test_New_Close(t *testing.T) {
-	testWriter1 := New(nil, nil)
+	testWriter1 := NewWriterWithOptions(nil)
 	testWriter1.Close()
 
 	testWriter2 := NewWriter("url", "token", "bucket")
@@ -27,16 +27,17 @@ func Test_New_Close(t *testing.T) {
 	defaultOptions := DefaultOptions()
 	options := defaultOptions.
 		SetLogger(logger).
-		SetSendInterval(defaultOptions.writer.SendInterval).
-		SetSendTimeout(defaultOptions.writer.SendTimeout).
-		SetServerURL(defaultOptions.client.ServerURL).
-		SetAuthToken(defaultOptions.client.AuthToken).
-		SetBucket(defaultOptions.client.Bucket).
-		SetPrecision(defaultOptions.client.Precision).
-		SetHTTPTimeout(defaultOptions.client.HTTPTimeout).
-		SetBatchSize(defaultOptions.batch.BufferSize).
-		SetEntriesLimit(defaultOptions.batch.EntriesLimit)
-	testWriter3 := New(logger, options)
+		SetSendInterval(defaultOptions.Writer.SendInterval).
+		SetSendTimeout(defaultOptions.Writer.SendTimeout).
+		SetServerURL(defaultOptions.Client.ServerURL).
+		SetAuthToken(defaultOptions.Client.AuthToken).
+		SetBucket(defaultOptions.Client.Bucket).
+		SetPrecision(defaultOptions.Client.Precision).
+		SetHTTPTimeout(defaultOptions.Client.HTTPTimeout).
+		SetBatchSize(defaultOptions.Batch.BufferSize).
+		SetEntriesLimit(defaultOptions.Batch.EntriesLimit)
+	testWriter3 := NewWriterWithOptions(options)
+	time.Sleep(10 * time.Millisecond)
 	testWriter3.Close()
 
 	assert.IsType(t, &writer{}, testWriter3)
@@ -94,12 +95,10 @@ func Test_run(t *testing.T) {
 		}
 
 		testWriter := &writer{
-			batch:  table.batch(),
-			write:  make(chan []byte, 1),
-			logger: logger,
-			options: &writerOptions{
-				SendInterval: 1 * time.Millisecond,
-			},
+			batch:        table.batch(),
+			write:        make(chan []byte, 1),
+			logger:       logger,
+			sendInterval: 1 * time.Millisecond,
 		}
 
 		go func() {
@@ -223,10 +222,9 @@ func Test_send(t *testing.T) {
 		}
 
 		testWriter := &writer{
-			batch:   table.batch(),
-			client:  table.client(),
-			logger:  logger,
-			options: &writerOptions{},
+			batch:  table.batch(),
+			client: table.client(),
+			logger: logger,
 		}
 
 		testWriter.send()

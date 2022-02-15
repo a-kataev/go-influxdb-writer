@@ -14,8 +14,6 @@ import (
 	"time"
 )
 
-var Version = "0.0.0"
-
 type httpClient interface {
 	Do(r *http.Request) (*http.Response, error)
 }
@@ -40,41 +38,40 @@ type Options struct {
 }
 
 type client struct {
-	http    httpClient
-	url     string
-	options *Options
+	http  httpClient
+	url   string
+	token string
 }
 
 func New(options *Options) Client {
 	c := &client{
-		options: options,
+		http: &http.Client{
+			Timeout: options.HTTPTimeout,
+		},
 	}
 
-	c.http = &http.Client{
-		Timeout: c.options.HTTPTimeout,
-	}
-
-	c.url = c.makeURL()
+	c.url = makeURL(options)
+	c.token = options.AuthToken
 
 	return c
 }
 
-func (c *client) makeURL() string {
+func makeURL(options *Options) string {
 	params := url.Values{}
 
 	changed := false
 
-	if len(c.options.Bucket) > 0 {
-		params.Add("bucket", c.options.Bucket)
+	if len(options.Bucket) > 0 {
+		params.Add("bucket", options.Bucket)
 		changed = true
 	}
 
-	if len(c.options.Precision) > 0 {
-		params.Add("precision", c.options.Precision)
+	if len(options.Precision) > 0 {
+		params.Add("precision", options.Precision)
 		changed = true
 	}
 
-	url := c.options.ServerURL + "/api/v2/write"
+	url := options.ServerURL + "/api/v2/write"
 
 	if changed {
 		url += "?" + params.Encode()
@@ -89,8 +86,8 @@ func (c *client) makeRequest(ctx context.Context, reader io.Reader) (*http.Reque
 		return nil, err
 	}
 
-	req.Header.Add("Authorization", "Token "+c.options.AuthToken)
-	req.Header.Add("User-Agent", "go-influxdb-writer/"+Version)
+	req.Header.Add("Authorization", "Token "+c.token)
+	req.Header.Add("User-Agent", "go-influxdb-writer")
 
 	return req, nil
 }

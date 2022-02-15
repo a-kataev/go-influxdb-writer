@@ -27,19 +27,21 @@ type Options struct {
 }
 
 type batch struct {
-	lock    sync.RWMutex
-	buffer  *bytes.Buffer
-	entries uint64
-	options *Options
+	lock         sync.RWMutex
+	buffer       *bytes.Buffer
+	entries      uint64
+	bufferSize   uint64
+	entriesLimit uint64
 }
 
 func New(options *Options) Batch {
 	b := &batch{
-		buffer:  bytes.NewBuffer([]byte{}),
-		options: options,
+		buffer:       bytes.NewBuffer([]byte{}),
+		bufferSize:   options.BufferSize,
+		entriesLimit: options.EntriesLimit,
 	}
 
-	b.buffer.Grow(int(b.options.BufferSize))
+	b.buffer.Grow(int(b.bufferSize))
 
 	return b
 }
@@ -53,11 +55,11 @@ func (b *batch) Write(e []byte) error {
 	b.lock.Lock()
 	defer b.lock.Unlock()
 
-	if uint64(b.buffer.Len()+len(e)+1) >= b.options.BufferSize {
+	if uint64(b.buffer.Len()+len(e)+1) >= b.bufferSize {
 		return ErrSizeExceeded
 	}
 
-	if b.entries+1 >= b.options.EntriesLimit {
+	if b.entries+1 >= b.entriesLimit {
 		return ErrLimitExceeded
 	}
 

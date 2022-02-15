@@ -8,13 +8,9 @@ import (
 	"github.com/a-kataev/go-influxdb-writer/internal/client"
 )
 
-// Writer
 type Writer interface {
-	// WriteLine
 	WriteLine(line string)
-	// Write
 	Write(b []byte)
-	// Close
 	Close()
 }
 
@@ -24,47 +20,31 @@ type writerOptions struct {
 }
 
 type writer struct {
-	client  client.Client
-	batch   batch.Batch
-	write   chan []byte
-	logger  Logger
-	options *writerOptions
+	client       client.Client
+	batch        batch.Batch
+	write        chan []byte
+	sendInterval time.Duration
+	sendTimeout  time.Duration
+	logger       Logger
 }
 
-// New create Writer with logger and options. Logger have priority of logger into options.
-func New(logger Logger, options *Options) Writer {
-	if options == nil {
-		options = DefaultOptions()
-	}
-
-	if logger != nil {
-		options.SetLogger(logger)
-	}
-
-	return NewWriterWithOptions(options)
-}
-
-// NewWriter create Writer with serverURL, authToken and bucket.
 func NewWriter(serverURL, authToken, bucket string) Writer {
 	return NewWriterWithOptions(DefaultOptions().
 		SetServerURL(serverURL).SetAuthToken(authToken).SetBucket(bucket))
 }
 
-// NewWriterWithOptions create Writer with options. Used in New and NewWriter.
 func NewWriterWithOptions(options *Options) Writer {
 	if options == nil {
 		options = DefaultOptions()
 	}
-
 	w := &writer{
-		client:  client.New(options.client),
-		batch:   batch.New(options.batch),
-		write:   make(chan []byte),
-		logger:  options.logger,
-		options: options.writer,
+		client:       client.New(options.Client),
+		batch:        batch.New(options.Batch),
+		write:        make(chan []byte),
+		sendInterval: options.Writer.SendInterval,
+		sendTimeout:  options.Writer.SendTimeout,
+		logger:       options.Logger,
 	}
-
-	w.logger.Infof("started")
 
 	go w.run()
 
@@ -72,7 +52,9 @@ func NewWriterWithOptions(options *Options) Writer {
 }
 
 func (w *writer) run() {
-	ticker := time.NewTicker(w.options.SendInterval)
+	w.logger.Infof("started")
+
+	ticker := time.NewTicker(w.sendInterval)
 	defer ticker.Stop()
 
 	for {
@@ -90,7 +72,7 @@ func (w *writer) run() {
 				}
 
 				ticker.Stop()
-				ticker = time.NewTicker(w.options.SendInterval)
+				ticker = time.NewTicker(w.sendInterval)
 			} else if err != nil {
 				w.logger.Errorf("batch.write: %s", err)
 			}
@@ -101,7 +83,7 @@ func (w *writer) run() {
 }
 
 func (w *writer) send() {
-	ctx, cancel := context.WithTimeout(context.Background(), w.options.SendTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), w.sendTimeout)
 	defer cancel()
 
 	defer w.batch.Reset()
@@ -133,17 +115,14 @@ func (w *writer) send() {
 		resp.RequestID, resp.StatusCode, resp.Response)
 }
 
-// WriteLine
 func (w *writer) WriteLine(line string) {
 	w.Write([]byte(line))
 }
 
-// WriteLine
 func (w *writer) Write(b []byte) {
 	w.write <- b
 }
 
-// Close
 func (w *writer) Close() {
 	close(w.write)
 

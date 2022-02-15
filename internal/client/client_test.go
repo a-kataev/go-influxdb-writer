@@ -47,19 +47,13 @@ func Test_makeURL(t *testing.T) {
 	}
 
 	for tt, table := range tables {
-		testClient := &client{
-			options: table.options,
-		}
-
-		url := testClient.makeURL()
+		url := makeURL(table.options)
 		assert.Equalf(t, table.url, url, "%d", tt)
 	}
 }
 
 func Test_makeRequest(t *testing.T) {
-	testClient := &client{
-		options: &Options{},
-	}
+	testClient := &client{}
 
 	request, err := testClient.makeRequest(nil, nil) //nolint
 	assert.Nil(t, request)
@@ -81,9 +75,7 @@ func (e *errReader) Close() error {
 }
 
 func Test_makeResponse(t *testing.T) {
-	testClient := &client{
-		options: &Options{},
-	}
+	testClient := &client{}
 
 	clientResponse, err := testClient.makeResponse(&http.Response{
 		Body: &errReader{},
@@ -134,9 +126,7 @@ func Test_makeResponse(t *testing.T) {
 }
 
 func Test_Send(t *testing.T) {
-	testClient := &client{
-		options: &Options{},
-	}
+	testClient := &client{}
 
 	clientResponse, err := testClient.Send(nil, nil) //nolint
 	assert.Nil(t, clientResponse)
