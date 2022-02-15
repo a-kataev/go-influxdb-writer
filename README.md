@@ -4,19 +4,17 @@ This library implements data writing in inflxudb 1.8+.
 
 ## Usage
 
-Add import `github.com/a-kataev/go-influxdb-writer` to your source code and sync dependencies or directly edit the `go.mod` file.
+Add import `github.com/a-kataev/go-influxdb-writer` to your source code and sync dependencies or edit directly the `go.mod` file.
 
 ## Options
 
-The Writer uses set of options to configure behavior. These are available in the Options object creating a Writer instance using
+The Writer uses a set of options to configure behavior. These are available in the object Options to create a Writer instance with default options using:
 
 ```golang
 w := writer.NewWriter("http://localhost:8086", "test-token", "test-bucket")
 ```
 
-will use the default options.
-
-To set different configuration values, e.g. to set send interval or entries limit, get default options and change what is needed:
+To set different configuration values, e.g. to set the send interval or entries limit, get default options and change what is needed:
 
 ```golang
 w := writer.NewWriterWithOptions(writer.DefaultOptions().
@@ -28,7 +26,7 @@ w := writer.NewWriterWithOptions(writer.DefaultOptions().
 
 ## Writer
 
-Data are asynchronously written to the underlying buffer and they are automatically sent to a server when the size of the write buffer reaches the batch size, default 5000, or the flush interval, default 10s, times out.
+Data are asynchronously written to the underlying buffer and they are automatically sent to a server when the size of the write buffer reaches the batch size (default 3Mb), or the flush interval expires(default 10s).
 
 Always use `Close()` method of the writer to stop all background processes.
 
@@ -69,3 +67,10 @@ func main() {
 	w.Close()
 }
 ```
+## Limitations
+
+Sending a batch is a blocking operation, the buffer is not available for writing while it is being sent.
+
+It is necessary to take into account the sending interval and http-stimeout.
+
+If the batch is not sent within the specified timeout, the data will not be saved and the buffer will be overwritten.
